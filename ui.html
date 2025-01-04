@@ -1,0 +1,65 @@
+<h1>Marker Settings</h1>
+<label>
+  Next Number:
+  <input type="number" id="number-input" value="1" />
+</label>
+<label>
+  Fill Color:
+  <input type="color" id="fill-color" value="#ff0000" />
+</label>
+<label>
+  Text Color:
+  <input type="color" id="text-color" value="#ffffff" />
+</label>
+<button id="apply-button">Apply Settings</button>
+<button id="add-marker-button">Add Marker</button>
+<script>
+  // UIからプラグインに設定を送信
+  document.getElementById("apply-button").addEventListener("click", () => {
+    const startingNumber = parseInt(
+      document.getElementById("number-input").value,
+      10
+    );
+    const fillColor = hexToRgb(document.getElementById("fill-color").value);
+    const textColor = hexToRgb(document.getElementById("text-color").value);
+
+    console.log("Updating settings:", { startingNumber, fillColor, textColor }); // デバッグ用
+    parent.postMessage(
+      {
+        pluginMessage: {
+          type: "update-settings",
+          startingNumber,
+          fillColor,
+          textColor,
+        },
+      },
+      "*"
+    );
+  });
+
+  // マーカー追加ボタン
+  document.getElementById("add-marker-button").addEventListener("click", () => {
+    console.log("Add Marker button clicked"); // デバッグ用
+    parent.postMessage({ pluginMessage: { type: "add-marker" } }, "*");
+  });
+
+  // プラグインからメッセージを受け取る
+  window.onmessage = (event) => {
+    const message = event.data.pluginMessage;
+
+    if (message.type === "update-next-number") {
+      console.log("Updating next number to:", message.nextNumber); // デバッグ用
+      document.getElementById("number-input").value = message.nextNumber;
+    }
+  };
+
+  // HEX色をRGBに変換する関数
+  function hexToRgb(hex) {
+    const bigint = parseInt(hex.slice(1), 16);
+    return {
+      r: ((bigint >> 16) & 255) / 255,
+      g: ((bigint >> 8) & 255) / 255,
+      b: (bigint & 255) / 255,
+    };
+  }
+</script>
