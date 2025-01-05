@@ -36,6 +36,7 @@ figma.ui.onmessage = async (msg) => {
 
       // フォントをロード
       await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+      await figma.loadFontAsync({ family: "Inter", style: "Bold" });
 
       // ドキュメント全体からコンポーネントセットを取得または作成
       const markerComponentSet = await getOrCreateMarkerComponentSet();
@@ -100,7 +101,7 @@ async function getOrCreateMarkerComponentSet(): Promise<ComponentSetNode> {
   console.log("Creating new marker component set.");
 
   // バリアントを作成
-  const sizes = { lg: 64, md: 32, sm: 24 };
+  const sizes = { lg: 48 , md: 32, sm: 24 };
   const components: ComponentNode[] = [];
 
   for (const size in sizes) {
@@ -128,14 +129,20 @@ async function getOrCreateMarkerComponentSet(): Promise<ComponentSetNode> {
 
     // 塗りと角丸を設定
     component.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-    component.strokes = [{type: "SOLID", color: { r: 1, g: 0, b: 0 } }]
+    component.strokes = [{type: "SOLID", color: { r: 1, g: 0, b: 0 } }];
+    // component.strokeWeight = 2;
+    component.strokeWeight = size === "sm" ? 1 : size === "md" ? 1.25 : 1.5;
     component.cornerRadius = dimension / 2;
 
     // テキストノードを追加
     const text = figma.createText();
-    text.fontSize = dimension / 1.25;
+    text.fontSize = dimension * 0.85;
     text.characters = "0";
+    text.letterSpacing = { value: -8, unit: "PERCENT" };
+    text.lineHeight = { value: 100, unit: "PERCENT" };
     text.fills = [{ type: "SOLID", color: { r: 1, g: 0, b: 0 } }];
+    text.fontName = { family: "Inter", style: "Bold" };
+    text.locked = true;
     component.appendChild(text);
 
     components.push(component);

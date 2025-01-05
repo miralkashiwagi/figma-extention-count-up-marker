@@ -1,7 +1,7 @@
 {
   "name": "Count-up-maker",
   "version": "1.0.0",
-  "description": "Your Figma Plugin",
+  "description": "Add a counter marker on the canvas that automatically counts up.",
   "main": "code.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
