@@ -1,6 +1,6 @@
 {
-  "name": "Count-up-maker",
-  "version": "1.0.0",
+  "name": "Count-up-marker",
+  "version": "1.0.1",
   "description": "Add a counter marker on the canvas that automatically counts up.",
   "main": "code.js",
   "scripts": {

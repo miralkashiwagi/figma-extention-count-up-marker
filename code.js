@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 let currentNumber = 1; // 次に描画されるマーカー番号
 let selectedSize = "lg"; // デフォルトのサイズ
 // コンポーネント名を定義
-const MARKER_COMPONENT_NAME = "_count-up-maker";
+const MARKER_COMPONENT_NAME = "_count-up-marker";
 // UIからのメッセージを受け取る
 figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
     try {
