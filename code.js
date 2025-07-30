@@ -19,17 +19,73 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             // UIから設定値を取得
             currentNumber = msg.startingNumber;
             selectedSize = msg.size;
-            console.log("Received settings:", { currentNumber, selectedSize });
             const selection = figma.currentPage.selection;
             let x, y;
+            // 最初に親要素の変数を宣言（グローバルスコープで利用可能に）
+            let targetParent = figma.currentPage;
             if (selection.length > 0) {
                 const selectedNode = selection[0];
-                console.log("Selected node:", selectedNode);
-                const bounds = selectedNode.absoluteTransform;
+                // 親要素を取得
+                const parentNode = selectedNode.parent;
+                // 選択されたノードの絶対座標での中心位置を計算
+                const selectedBounds = selectedNode.absoluteTransform;
                 const width = selectedNode.width;
                 const height = selectedNode.height;
-                x = bounds[0][2] + width / 2;
-                y = bounds[1][2] + height / 2;
+                const absoluteX = selectedBounds[0][2] + width / 2;
+                const absoluteY = selectedBounds[1][2] + height / 2;
+                // 親要素がフレーム、グループ、セクションのいずれかであることを確認
+                if (parentNode && (parentNode.type === 'FRAME' || parentNode.type === 'GROUP' || parentNode.type === 'SECTION')) {
+                    targetParent = parentNode;
+                    // 親要素が適切なタイプであることを確認
+                    if ('absoluteTransform' in parentNode) {
+                        try {
+                            // 親の変換行列を取得
+                            const parentTransform = parentNode.absoluteTransform;
+                            // 親の種類に応じた座標変換
+                            if (parentNode.type === 'GROUP') {
+                                // グループ特有の処理
+                                // 選択されたノードの「ローカル」座標（親要素内での相対位置）を取得
+                                if ('relativeTransform' in selectedNode) {
+                                    const relativeTransform = selectedNode.relativeTransform;
+                                    // x, yの座標を直接取得
+                                    x = relativeTransform[0][2] + width / 2;
+                                    y = relativeTransform[1][2] + height / 2;
+                                }
+                                else {
+                                    // フォールバック: 親の左上からのオフセットを計算
+                                    const parentX = parentTransform[0][2];
+                                    const parentY = parentTransform[1][2];
+                                    x = absoluteX - parentX;
+                                    y = absoluteY - parentY;
+                                }
+                            }
+                            else {
+                                // フレームやセクションの場合は単純なオフセット計算
+                                const parentX = parentTransform[0][2];
+                                const parentY = parentTransform[1][2];
+                                x = absoluteX - parentX;
+                                y = absoluteY - parentY;
+                            }
+                        }
+                        catch (e) {
+                            // 親要素の座標変換に失敗した場合はオフセットのみで計算
+                            const parentX = parentNode.x;
+                            const parentY = parentNode.y;
+                            x = absoluteX - parentX;
+                            y = absoluteY - parentY;
+                        }
+                    }
+                    else {
+                        // 親要素が適切な変換行列を持っていない場合
+                        x = absoluteX;
+                        y = absoluteY;
+                    }
+                }
+                else {
+                    // ページに直接配置する場合は絶対座標をそのまま使用
+                    x = absoluteX;
+                    y = absoluteY;
+                }
             }
             else {
                 const viewport = figma.viewport.bounds;
@@ -42,18 +98,21 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             // ドキュメント全体からコンポーネントセットを取得または作成
             const markerComponentSet = yield getOrCreateMarkerComponentSet();
             // 選択されたバリアントのインスタンスを取得
-            console.log("Available variants:", markerComponentSet.children.map((child) => child.name));
-            const variant = markerComponentSet.findChild(
-            // (child) => child.type === "COMPONENT" && child.variantProperties?.size === selectedSize
-            (child) => child.name === `Size=${selectedSize}`);
-            console.log(variant);
+            const variant = markerComponentSet.findChild((child) => child.name === `Size=${selectedSize}`);
             // if (!variant) {
             //   console.error("Variant not found. Available variants:", markerComponentSet.children.map((child) => child.name));
             //   throw new Error(`Variant for size "${selectedSize}" not found.`);
             // }
             const instance = variant.createInstance();
-            instance.x = x - 25; // 中心位置に調整
-            instance.y = y - 25;
+            // インスタンスの寸法を取得（中心に配置するため）
+            const instanceWidth = instance.width;
+            const instanceHeight = instance.height;
+            // 中心からわずかにオフセットした位置に配置
+            const offsetX = -5; // 左方向に少しオフセット
+            const offsetY = -5; // 上方向に少しオフセット
+            // オフセットも含めた最終的な位置を計算
+            instance.x = Math.round(x - instanceWidth / 2) + offsetX;
+            instance.y = Math.round(y - instanceHeight / 2) + offsetY;
             // 数字を更新
             const textNode = instance.findOne((node) => node.type === "TEXT");
             if (textNode) {
@@ -61,17 +120,28 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             }
             // 数字をカウントアップ
             currentNumber++;
-            // ページに追加
-            figma.currentPage.appendChild(instance);
+            // 親要素に追加
+            if (targetParent && targetParent !== figma.currentPage) {
+                // targetParentがSceneNodeであることを確認
+                if ('appendChild' in targetParent) {
+                    targetParent.appendChild(instance);
+                }
+                else {
+                    figma.currentPage.appendChild(instance);
+                }
+            }
+            else {
+                // 適切な親要素がない場合や選択がない場合は現在のページに追加
+                figma.currentPage.appendChild(instance);
+            }
             // インスタンスを選択状態にする
             figma.currentPage.selection = [instance];
             // 次の番号をUIに送信
             figma.ui.postMessage({ type: "update-next-number", nextNumber: currentNumber });
-            console.log("Marker added successfully.");
         }
     }
     catch (error) {
-        console.error("Error during add-marker:", error);
+        // エラーが発生した場合は何もしない
     }
 });
 // ドキュメント全体からコンポーネントセットを取得または作成
@@ -83,7 +153,6 @@ function getOrCreateMarkerComponentSet() {
         if (existingSet) {
             return existingSet;
         }
-        console.log("Creating new marker component set.");
         // バリアントを作成
         const sizes = { lg: 48, md: 32, sm: 24 };
         const components = [];
@@ -137,7 +206,6 @@ function getOrCreateMarkerComponentSet() {
         variantSet.itemSpacing = 10; // バリアント間の間隔
         // variantSet.primaryAxisSizingMode = "AUTO"; // 主軸の高さをHugに設定
         // variantSet.counterAxisSizingMode = "AUTO"; // 副軸の幅をHugに設定
-        console.log("Variant set created with variants:", components.map((c) => c.name)); // デバッグ用
         return variantSet;
     });
 }
