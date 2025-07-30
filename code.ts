@@ -111,8 +111,8 @@ figma.ui.onmessage = async (msg) => {
       const instanceHeight = instance.height;
 
       // 中心からわずかにオフセットした位置に配置
-      const offsetX = -5; // 左方向に少しオフセット
-      const offsetY = -5; // 上方向に少しオフセット
+      const offsetX = -10; // 左方向に少しオフセット
+      const offsetY = -10; // 上方向に少しオフセット
 
       // オフセットも含めた最終的な位置を計算
       instance.x = Math.round(x - instanceWidth / 2) + offsetX;
